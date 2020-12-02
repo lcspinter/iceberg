@@ -587,7 +587,7 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testArrayOfPrimitivesInTable() throws IOException {
+  public void testScanArrayOfPrimitivesInTable() throws IOException {
     Schema schema =
             new Schema(required(1, "arrayofprimitives", Types.ListType.ofRequired(2, Types.IntegerType.get())));
     List<Record> records = createTableWithGeneratedRecords(schema, 1, 0L, "arraytable");
@@ -603,7 +603,17 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testArrayOfArraysInTable() throws IOException {
+  public void testWriteArrayOfPrimitivesInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "arrayofprimitives",
+            Types.ListType.ofRequired(3, Types.StringType.get())));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L);
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanArrayOfArraysInTable() throws IOException {
     Schema schema =
             new Schema(
                     required(1, "arrayofarrays",
@@ -625,7 +635,20 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testArrayOfMapsInTable() throws IOException {
+  public void testWriteArrayOfArraysInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema =
+            new Schema(
+                    required(1, "id", Types.LongType.get()),
+                    required(2, "arrayofarrays",
+                            Types.ListType.ofRequired(3, Types.ListType.ofRequired(4, Types.StringType.get()))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((List<String>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanArrayOfMapsInTable() throws IOException {
     Schema schema =
             new Schema(required(1, "arrayofmaps", Types.ListType
                     .ofRequired(2, Types.MapType.ofRequired(3, 4, Types.StringType.get(),
@@ -647,7 +670,20 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testArrayOfStructsInTable() throws IOException {
+  public void testWriteArrayOfMapsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema =
+            new Schema(required(1, "id", Types.LongType.get()),
+                    required(2, "arrayofmaps", Types.ListType
+                    .ofRequired(3, Types.MapType.ofRequired(4, 5, Types.StringType.get(),
+                            Types.StringType.get()))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((List<Map<String, String>>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanArrayOfStructsInTable() throws IOException {
     Schema schema =
             new Schema(
                     required(1, "arrayofstructs", Types.ListType.ofRequired(2, Types.StructType
@@ -670,7 +706,20 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testMapOfPrimitivesInTable() throws IOException {
+  public void testWriteArrayOfStructsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema =
+            new Schema(required(1, "id", Types.LongType.get()),
+                    required(2, "arrayofstructs", Types.ListType.ofRequired(3, Types.StructType
+                            .of(required(4, "something", Types.StringType.get()), required(5, "someone",
+                                    Types.StringType.get()), required(6, "somewhere", Types.StringType.get())))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((List<?>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanMapOfPrimitivesInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "mapofprimitives", Types.MapType.ofRequired(2, 3, Types.StringType.get(),
                     Types.IntegerType.get())));
@@ -688,7 +737,18 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testMapOfArraysInTable() throws IOException {
+  public void testWriteMapOfPrimitivesInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "mapofprimitives", Types.MapType.ofRequired(3, 4, Types.StringType.get(),
+                    Types.StringType.get())));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((Map<String, String>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanMapOfArraysInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "mapofarrays",
                     Types.MapType.ofRequired(2, 3, Types.StringType.get(), Types.ListType.ofRequired(4,
@@ -709,7 +769,19 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testMapOfMapsInTable() throws IOException {
+  public void testWriteMapOfArraysInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "mapofarrays",
+                    Types.MapType.ofRequired(3, 4, Types.StringType.get(), Types.ListType.ofRequired(5,
+                            Types.StringType.get()))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((Map<String, List<String>>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanMapOfMapsInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "mapofmaps", Types.MapType.ofRequired(2, 3, Types.StringType.get(),
                     Types.MapType.ofRequired(4, 5, Types.StringType.get(), Types.StringType.get()))));
@@ -730,7 +802,18 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testMapOfStructsInTable() throws IOException {
+  public void testWriteMapOfMapsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "mapofmaps", Types.MapType.ofRequired(3, 4, Types.StringType.get(),
+                    Types.MapType.ofRequired(5, 6, Types.StringType.get(), Types.StringType.get()))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((Map<String, Map<String, String>>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanMapOfStructsInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "mapofstructs", Types.MapType.ofRequired(2, 3, Types.StringType.get(),
                     Types.StructType.of(required(4, "something", Types.DoubleType.get()),
@@ -753,7 +836,20 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testStructOfPrimitivesInTable() throws IOException {
+  public void testWriteMapOfStructsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "mapofstructs", Types.MapType.ofRequired(3, 4, Types.StringType.get(),
+                    Types.StructType.of(required(5, "something", Types.StringType.get()),
+                            required(6, "someone", Types.StringType.get()),
+                            required(7, "somewhere", Types.StringType.get())))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L).stream()
+            .filter(r -> !((Map<String, GenericRecord>) r.get(1)).isEmpty()).collect(Collectors.toList());
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanStructOfPrimitivesInTable() throws IOException {
     Schema schema = new Schema(required(1, "structofprimitives",
             Types.StructType.of(required(2, "key", Types.StringType.get()), required(3, "value",
                     Types.IntegerType.get()))));
@@ -769,7 +865,18 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testStructOfArraysInTable() throws IOException {
+  public void testWriteStructOfPrimitivesInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "structofprimitives",
+            Types.StructType.of(required(3, "key", Types.StringType.get()), required(4, "value",
+                    Types.StringType.get()))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L);
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanStructOfArraysInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "structofarrays", Types.StructType
                     .of(required(2, "names", Types.ListType.ofRequired(3, Types.StringType.get())),
@@ -795,7 +902,19 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testStructOfMapsInTable() throws IOException {
+  public void testWriteStructOfArraysInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "structofarrays", Types.StructType
+                    .of(required(3, "names", Types.ListType.ofRequired(4, Types.StringType.get())),
+                            required(5, "birthdays", Types.ListType.ofRequired(6,
+                                    Types.StringType.get())))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L);
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanStructOfMapsInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "structofmaps", Types.StructType
                     .of(required(2, "map1", Types.MapType.ofRequired(3, 4,
@@ -824,7 +943,20 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   @Test
-  public void testStructOfStructsInTable() throws IOException {
+  public void testWriteStructOfMapsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "structofmaps", Types.StructType
+                    .of(required(3, "map1", Types.MapType.ofRequired(4, 5,
+                            Types.StringType.get(), Types.StringType.get())), required(6, "map2",
+                            Types.MapType.ofRequired(7, 8, Types.StringType.get(),
+                                    Types.StringType.get())))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L);
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
+  public void testScanStructOfStructsInTable() throws IOException {
     Schema schema = new Schema(
             required(1, "structofstructs", Types.StructType.of(required(2, "struct1", Types.StructType
                     .of(required(3, "key", Types.StringType.get()), required(4, "value",
@@ -842,6 +974,18 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
     }
   }
 
+  @Test
+  public void testWriteStructOfStructsInTable() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
+    Schema schema = new Schema(required(1, "id", Types.LongType.get()),
+            required(2, "structofstructs", Types.StructType.of(required(3, "struct1", Types.StructType
+                    .of(required(4, "key", Types.StringType.get()), required(5, "value",
+                            Types.StringType.get()))))));
+    List<Record> records = TestHelper.generateRandomRecords(schema, 5, 0L);
+    testComplexTypeWrite(schema, records);
+  }
+
+  @Test
   public void testInsert() throws IOException {
     Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
 
@@ -965,11 +1109,28 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
   }
 
   protected void createHiveTable(String tableName, String location) {
-    shell.executeStatement(String.format(
-            "CREATE TABLE default.%s " +
-            "STORED BY '%s' " +
-            "LOCATION '%s'",
-            tableName, HiveIcebergStorageHandler.class.getName(), location));
+    createHiveTable(tableName, location, null);
+  }
+
+  protected void createHiveTable(String tableName, String location, Map<String, String> properties) {
+    StringBuilder query = new StringBuilder("CREATE TABLE default.")
+            .append(tableName)
+            .append(" STORED BY '")
+            .append(HiveIcebergStorageHandler.class.getName())
+            .append("'");
+    if (location != null && !location.isEmpty()) {
+      query.append(" LOCATION '")
+              .append(location)
+              .append("'");
+    }
+    if (properties != null && !properties.isEmpty()) {
+      query.append(" TBLPROPERTIES (");
+      properties.entrySet().forEach(e -> query.append("'").append(e.getKey()).append("'='").append(e.getValue())
+              .append("',"));
+      query.setLength(query.length() - 1);
+      query.append(" )");
+    }
+    shell.executeStatement(query.toString());
   }
 
   protected String locationForCreateTable(String tempDirName, String tableName) {
@@ -981,5 +1142,68 @@ public abstract class HiveIcebergStorageHandlerBaseTest {
     List<Record> records = TestHelper.generateRandomRecords(schema, numRecords, seed);
     createTable(tableName, schema, records);
     return records;
+  }
+
+  private void testComplexTypeWrite(Schema schema, List<Record> records) throws IOException {
+    String tableName = "complex_table";
+    String location = locationForCreateTable(temp.getRoot().getPath(), tableName);
+    createHiveTable(tableName, location,
+            Collections.singletonMap(InputFormatConfig.TABLE_SCHEMA, SchemaParser.toJson(schema)));
+
+    String dummyTableName = "dummy";
+    shell.executeStatement("CREATE TABLE default." + dummyTableName + "(a int)");
+    shell.executeStatement("INSERT INTO TABLE default." + dummyTableName + " VALUES(1)");
+    records.forEach(r -> shell.executeStatement(insertQueryForComplexType(tableName, dummyTableName, schema, r)));
+    Table table = testTables.load(shell.getHiveConf(), tableName, location);
+    HiveIcebergSerDeTestUtils.validate(table, new ArrayList<>(records), 0);
+  }
+
+  private String insertQueryForComplexType(String tableName, String dummyTableName, Schema schema, Record record) {
+    StringBuilder query = new StringBuilder("INSERT INTO TABLE ").append(tableName).append(" SELECT ")
+            .append(record.get(0)).append(", ");
+    Type type = schema.asStruct().fields().get(1).type();
+    query.append(buildComplexTypeInnerQuery(record.get(1), type));
+    query.setLength(query.length() - 1);
+    query.append(" FROM ").append(dummyTableName).append(" LIMIT 1");
+    return query.toString();
+  }
+
+  private StringBuilder buildComplexTypeInnerQuery(Object field, Type type) {
+    StringBuilder query = new StringBuilder();
+    if (type instanceof Types.ListType) {
+      query.append("array(");
+      List<Object> elements = (List<Object>) field;
+      Type innerType = ((Types.ListType) type).fields().get(0).type();
+      if (!elements.isEmpty()) {
+        elements.forEach(e -> query.append(buildComplexTypeInnerQuery(e, innerType)));
+        query.setLength(query.length() - 1);
+      }
+      query.append("),");
+    } else if (type instanceof Types.MapType) {
+      query.append("map(");
+      Map<Object, Object> entries = (Map<Object, Object>) field;
+      Type keyType = ((Types.MapType) type).fields().get(0).type();
+      Type valueType = ((Types.MapType) type).fields().get(1).type();
+      if (!entries.isEmpty()) {
+        entries.entrySet().forEach(e -> query.append(buildComplexTypeInnerQuery(e.getKey(), keyType)
+                .append(buildComplexTypeInnerQuery(e.getValue(), valueType))));
+        query.setLength(query.length() - 1);
+      }
+      query.append("),");
+    } else if (type instanceof Types.StructType) {
+      query.append("named_struct(");
+      ((GenericRecord) field).struct().fields().stream()
+              .forEach(f -> query.append(buildComplexTypeInnerQuery(f.name(), Types.StringType.get()))
+                      .append(buildComplexTypeInnerQuery(((GenericRecord) field).getField(f.name()), f.type())));
+      query.setLength(query.length() - 1);
+      query.append("),");
+    } else if (type instanceof Types.StringType) {
+      if (field != null) {
+        query.append("'").append(field).append("',");
+      }
+    } else {
+      throw new RuntimeException("Unsupported type in complex query build.");
+    }
+    return query;
   }
 }

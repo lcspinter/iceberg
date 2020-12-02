@@ -20,11 +20,15 @@
 package org.apache.iceberg.mr.hive;
 
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StandardStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
@@ -66,68 +70,87 @@ class DeserializerHelper {
       } else {
         Type type = tableSchema.columns().get(i).type();
         ObjectInspector fieldInspector = field.getFieldObjectInspector();
-        switch (type.typeId()) {
-          case BOOLEAN:
-            boolean boolVal = ((BooleanObjectInspector) fieldInspector).get(value);
-            record.set(i, boolVal);
-            break;
-          case INTEGER:
-            int intVal = ((IntObjectInspector) fieldInspector).get(value);
-            record.set(i, intVal);
-            break;
-          case LONG:
-            long longVal = ((LongObjectInspector) fieldInspector).get(value);
-            record.set(i, longVal);
-            break;
-          case FLOAT:
-            float floatVal = ((FloatObjectInspector) fieldInspector).get(value);
-            record.set(i, floatVal);
-            break;
-          case DOUBLE:
-            double doubleVal = ((DoubleObjectInspector) fieldInspector).get(value);
-            record.set(i, doubleVal);
-            break;
-          case DATE:
-            record.set(i, ((IcebergReadObjectInspector) IcebergObjectInspector.DATE_INSPECTOR).getIcebergObject(value));
-            break;
-          case TIMESTAMP:
-            // TODO: handle timezone in Hive 3.x where Hive type also has TZ
-            Types.TimestampType timestampType = (Types.TimestampType) tableSchema.columns().get(i).type();
-            ObjectInspector readObjectInspector = timestampType.shouldAdjustToUTC() ?
-                IcebergObjectInspector.TIMESTAMP_INSPECTOR_WITH_TZ : IcebergObjectInspector.TIMESTAMP_INSPECTOR;
-            record.set(i, ((IcebergReadObjectInspector) readObjectInspector).getIcebergObject(value));
-            break;
-          case STRING:
-            String stringVal = ((StringObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
-            record.set(i, stringVal);
-            break;
-          case UUID:
-            String stringUuidVal = ((StringObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
-            // TODO: This will not work with Parquet. Parquet UUID expect byte[], others are expecting UUID
-            record.set(i, UUID.fromString(stringUuidVal));
-            break;
-          case FIXED:
-            byte[] bytesVal = ((BinaryObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
-            record.set(i, bytesVal);
-            break;
-          case BINARY:
-            byte[] binaryBytesVal = ((BinaryObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
-            record.set(i, ByteBuffer.wrap(binaryBytesVal));
-            break;
-          case DECIMAL:
-            BigDecimal decimalVal =
-                ((HiveDecimalObjectInspector) fieldInspector).getPrimitiveJavaObject(value).bigDecimalValue();
-            record.set(i, decimalVal);
-            break;
-          case STRUCT:
-          case LIST:
-          case MAP:
-          case TIME:
-          default:
-            throw new SerDeException("Unsupported column type: " + type);
-        }
+        record.set(i, getRecordValue(type, fieldInspector, value));
       }
     }
     return record;
+  }
+
+  private static Object getRecordValue(Type type, ObjectInspector fieldInspector, Object value) throws SerDeException {
+    switch (type.typeId()) {
+      case BOOLEAN:
+        boolean boolVal = ((BooleanObjectInspector) fieldInspector).get(value);
+        return boolVal;
+      case INTEGER:
+        int intVal = ((IntObjectInspector) fieldInspector).get(value);
+        return intVal;
+      case LONG:
+        long longVal = ((LongObjectInspector) fieldInspector).get(value);
+        return longVal;
+      case FLOAT:
+        float floatVal = ((FloatObjectInspector) fieldInspector).get(value);
+        return floatVal;
+      case DOUBLE:
+        double doubleVal = ((DoubleObjectInspector) fieldInspector).get(value);
+        return doubleVal;
+      case DATE:
+        Object dateVal = ((IcebergReadObjectInspector) IcebergObjectInspector.DATE_INSPECTOR).getIcebergObject(value);
+        return dateVal;
+      case TIMESTAMP:
+        // TODO: handle timezone in Hive 3.x where Hive type also has TZ
+        Types.TimestampType timestampType = (Types.TimestampType) type;
+        ObjectInspector readObjectInspector = timestampType.shouldAdjustToUTC() ?
+                IcebergObjectInspector.TIMESTAMP_INSPECTOR_WITH_TZ : IcebergObjectInspector.TIMESTAMP_INSPECTOR;
+        return ((IcebergReadObjectInspector) readObjectInspector).getIcebergObject(value);
+      case STRING:
+        String stringVal = ((StringObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
+        return stringVal;
+      case UUID:
+        String stringUuidVal = ((StringObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
+        // TODO: This will not work with Parquet. Parquet UUID expect byte[], others are expecting UUID
+        return stringUuidVal;
+      case FIXED:
+        byte[] bytesVal = ((BinaryObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
+        return bytesVal;
+      case BINARY:
+        byte[] binaryBytesVal = ((BinaryObjectInspector) fieldInspector).getPrimitiveJavaObject(value);
+        return binaryBytesVal;
+      case DECIMAL:
+        BigDecimal decimalVal =
+                ((HiveDecimalObjectInspector) fieldInspector).getPrimitiveJavaObject(value).bigDecimalValue();
+        return decimalVal;
+      case STRUCT:
+        Record recordVal = GenericRecord.create(type.asStructType());
+        StandardStructObjectInspector structObjectInspector = (StandardStructObjectInspector) fieldInspector;
+        for (StructField structFieldRef : structObjectInspector.getAllStructFieldRefs()) {
+          Object structFieldData = structObjectInspector.getStructFieldData(value, structFieldRef);
+          recordVal.setField(structFieldRef.getFieldName(),
+                  getRecordValue(type.asStructType().field(structFieldRef.getFieldName()).type(),
+                          structFieldRef.getFieldObjectInspector(), structFieldData));
+        }
+        return recordVal;
+      case LIST:
+        List<Object> listVal = new ArrayList<>();
+        ListObjectInspector listObjectInspector = (ListObjectInspector) fieldInspector;
+        ObjectInspector listElementObjectInspector = listObjectInspector.getListElementObjectInspector();
+        for (Object val : listObjectInspector.getList(value)) {
+          listVal.add(getRecordValue(type.asListType().elementType(), listElementObjectInspector, val));
+        }
+        return listVal;
+      case MAP:
+        Map<Object, Object> mapVal = new HashMap<>();
+        MapObjectInspector mapObjectInspector = (MapObjectInspector) fieldInspector;
+        ObjectInspector mapKeyObjectInspector = mapObjectInspector.getMapKeyObjectInspector();
+        ObjectInspector mapValueObjectInspector = mapObjectInspector.getMapValueObjectInspector();
+        Types.MapType mapType = type.asMapType();
+        for (Map.Entry<?, ?> entry : mapObjectInspector.getMap(value).entrySet()) {
+          mapVal.put(getRecordValue(mapType.keyType(), mapKeyObjectInspector, entry.getKey()),
+                  getRecordValue(mapType.valueType(), mapValueObjectInspector, entry.getValue()));
+        }
+        return mapVal;
+      case TIME:
+      default:
+        throw new SerDeException("Unsupported column type: " + type);
+    }
   }
 }
