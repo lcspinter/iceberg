@@ -28,8 +28,6 @@ import org.apache.iceberg.Schema;
 import org.apache.iceberg.data.RandomGenericData;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.hadoop.HadoopTables;
-import org.apache.iceberg.mr.Catalogs;
-import org.apache.iceberg.mr.InputFormatConfig;
 import org.apache.iceberg.mr.hive.serde.objectinspector.IcebergObjectInspector;
 import org.apache.iceberg.mr.mapred.Container;
 import org.apache.iceberg.types.Types;
@@ -56,7 +54,6 @@ public class TestHiveIcebergSerDe {
 
     Properties properties = new Properties();
     properties.setProperty("location", location.toString());
-    properties.setProperty(InputFormatConfig.CATALOG_NAME, Catalogs.ICEBERG_HADOOP_TABLE_NAME);
 
     HadoopTables tables = new HadoopTables(conf);
     tables.create(schema, location.toString());
